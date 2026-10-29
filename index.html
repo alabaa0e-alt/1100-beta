@@ -1,614 +1,198 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>خريطة القصر التجريبية</title>
-
-<style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-html,body{height:100%}
-body{margin:0;overflow:hidden;background:#c5a477;font-family:Arial,sans-serif;color:white;touch-action:none}
-#واجهة{position:fixed;inset:0;pointer-events:none;z-index:5}
-#العنوان{position:absolute;top:12px;left:12px;right:12px;text-align:center;background:#38291dbd;padding:10px;border:1px solid #d7b77c;border-radius:12px;font-size:18px}
-#المؤشرات{position:absolute;top:65px;right:10px;width:155px;background:#241b16d9;padding:10px;border-radius:12px;font-size:12px}
-.سطر{margin:8px 0}
-.خلفية{height:8px;background:#51463b;border-radius:8px;overflow:hidden;margin-top:4px}
-.قيمة{height:100%;width:100%;transition:width .3s}
-#رسالة{position:absolute;top:175px;left:10px;background:#241b16cc;padding:8px;border-radius:8px;font-size:12px}
-#تحكم{position:absolute;bottom:18px;left:18px;display:grid;direction:ltr;grid-template-columns:52px 52px 52px;grid-template-rows:52px 52px 52px;gap:5px;pointer-events:auto}
-.زر{background:#241b16c9;color:white;border:1px solid #d6b67d;border-radius:12px;font-size:23px;touch-action:none}
-#تفاعل{position:absolute;bottom:32px;right:18px;pointer-events:auto;background:#7c4b24;color:white;border:2px solid #e0bd80;border-radius:50%;width:72px;height:72px;font-size:13px;touch-action:none}
-#تذييل{position:absolute;bottom:8px;right:100px;left:10px;text-align:center;font-size:10px;color:#fff1d6;text-shadow:1px 1px 3px #000}
-#خطأ{display:none;position:fixed;top:50%;left:20px;right:20px;transform:translateY(-50%);z-index:9;background:#5a1d1dee;border:1px solid #ffb4b4;border-radius:12px;padding:16px;text-align:center;font-size:15px;line-height:1.7}
-#منطقةيسار,#منطقةيمين{position:absolute;top:0;bottom:0;pointer-events:auto;touch-action:none}
-#منطقةيسار{left:0;width:50%}
-#منطقةيمين{right:0;width:50%}
-#قاعدة{position:absolute;left:28px;bottom:36px;width:120px;height:120px;border-radius:50%;background:#241b1655;border:2px solid #e0bd8099;pointer-events:none;opacity:.55}
-#قاعدة.نشط{opacity:1}
-#مقبض{position:absolute;left:34px;top:34px;width:52px;height:52px;border-radius:50%;background:#e0bd80cc;border:2px solid #ffffff44;pointer-events:none}
-#حالةالنموذج{position:absolute;top:65px;left:10px;background:#241b16cc;padding:6px 10px;border-radius:8px;font-size:11px;color:#ffe9bf}
-</style>
-</head>
-
-<body>
-<div id="خطأ"></div>
-<div id="واجهة">
-  <div id="منطقةيسار"></div>
-  <div id="منطقةيمين"></div>
-  <div id="العنوان">قصر الأحساء — خريطة تجريبية</div>
-  <div id="المؤشرات">
-    <b>حالة اللاعب</b>
-    <div class="سطر">💧 الماء<div class="خلفية"><div id="ماء" class="قيمة" style="background:#38bdf8"></div></div></div>
-    <div class="سطر">🍞 الطعام<div class="خلفية"><div id="طعام" class="قيمة" style="background:#e8b84f"></div></div></div>
-    <div class="سطر">⭐ المعنويات<div class="خلفية"><div id="معنويات" class="قيمة" style="background:#6bd18b"></div></div></div>
-    <div id="حفظ">الحفظ: تلقائي</div>
-  </div>
-  <div id="حالةالنموذج">جارٍ تحميل الشخصية…</div>
-  <div id="رسالة">استكشف القصر</div>
-  <div id="قاعدة"><div id="مقبض"></div></div>
-  <button id="تفاعل">تفاعل</button>
-  <div id="تذييل">الجويستك يسارًا للحركة (ادفعه للآخر للجري) — اسحب يمينًا للكاميرا</div>
-</div>
-
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module">
-const رسالة=document.getElementById('رسالة');
-const حالةالنموذج=document.getElementById('حالةالنموذج');
-function خطأ(نص){
- const e=document.getElementById('خطأ');
- e.textContent=نص;
- e.style.display='block';
-}
-
-// تحميل المكتبة مع رسالة واضحة عند الفشل
-let THREE;
-try{
- THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
-}catch(e){
- خطأ('تعذّر تحميل مكتبة Three.js. تأكد من اتصال الإنترنت ثم أعد تحميل الصفحة.');
- throw e;
-}
-
-const مشهد = new THREE.Scene();
-مشهد.background = new THREE.Color(0xb9c6c5);
-مشهد.fog = new THREE.Fog(0xb9c6c5, 45, 150);
-
-const كاميرا = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, .1, 300);
-let عارض;
-try{
- عارض = new THREE.WebGLRenderer({antialias:true});
-}catch(e){
- خطأ('متصفحك لا يدعم WebGL أو أنه معطّل، لذلك لا يمكن عرض المشهد.');
- throw e;
-}
-عارض.setSize(innerWidth,innerHeight);
-عارض.setPixelRatio(Math.min(devicePixelRatio,1.7));
-عارض.shadowMap.enabled=true;
-عارض.shadowMap.type=THREE.PCFSoftShadowMap;
-عارض.toneMapping=THREE.ACESFilmicToneMapping;
-عارض.toneMappingExposure=1.15;
-document.body.appendChild(عارض.domElement);
-عارض.domElement.style.position='fixed';
-عارض.domElement.style.inset='0';
-عارض.domElement.style.zIndex='0';
-
-مشهد.add(new THREE.HemisphereLight(0xffedce,0x796047,2));
-
-const شمس = new THREE.DirectionalLight(0xffdfad,3);
-شمس.position.set(-25,35,20);
-شمس.castShadow=true;
-شمس.shadow.mapSize.set(1024,1024);
-شمس.shadow.camera.left=-40;
-شمس.shadow.camera.right=40;
-شمس.shadow.camera.top=40;
-شمس.shadow.camera.bottom=-40;
-شمس.shadow.bias=-0.0005;
-مشهد.add(شمس);
-مشهد.add(شمس.target);
-
-// مشاركة الخامات لتقليل الحمل على الجوال
-const مخزنالخامات=new Map();
-const خامة=(لون,خشونة=1)=>{
- const k=لون+'_'+خشونة;
- if(!مخزنالخامات.has(k))مخزنالخامات.set(k,new THREE.MeshStandardMaterial({color:لون,roughness:خشونة}));
- return مخزنالخامات.get(k);
-};
-
-function صندوق(اسم,موقع,حجم,لون,ظل=true){
- const جسم=new THREE.Mesh(new THREE.BoxGeometry(...حجم),خامة(لون));
- جسم.name=اسم;
- جسم.position.set(...موقع);
- جسم.castShadow=ظل;
- جسم.receiveShadow=true;
- مشهد.add(جسم);
- return جسم;
-}
-
-function اسطوانة(اسم,موقع,فوق,تحت,ارتفاع,لون,عدد=12){
- const جسم=new THREE.Mesh(new THREE.CylinderGeometry(فوق,تحت,ارتفاع,عدد),خامة(لون));
- جسم.name=اسم;
- جسم.position.set(...موقع);
- جسم.castShadow=true;
- جسم.receiveShadow=true;
- مشهد.add(جسم);
- return جسم;
-}
-
-// الأرض
-صندوق('أرض القصر',[0,-.35,0],[160,.5,160],0xc4a16e);
-صندوق('ساحة القصر',[0,-.06,0],[30,.12,24],0xb69a72);
-
-// جدران القصر (الواجهة الأمامية فيها فتحة باب عرضها 3)
-صندوق('الجدار الخلفي',[0,3,-12],[30,6,1],0xb58b5c);
-صندوق('الجدار الأيسر',[-15,3,0],[1,6,24],0xc09a69);
-صندوق('الجدار الأيمن',[15,3,0],[1,6,24],0xc09a69);
-صندوق('الجدار الأمامي الأيسر',[-8.25,3,12],[13.5,6,1],0xb58b5c);
-صندوق('الجدار الأمامي الأيمن',[8.25,3,12],[13.5,6,1],0xb58b5c);
-
-// الأبراج
-for(const x of [-13,13]){
- for(const z of [-10,10]){
-  اسطوانة('برج',[x,3,z],2.5,3,6,0xc5a071,12);
-  اسطوانة('حافة البرج',[x,6.1,z],2.8,2.8,.35,0x8c603d,12);
-  اسطوانة('سطح البرج',[x,6.5,z],1.9,2.4,.6,0xd1ac7c,12);
- }
-}
-
-// مبنى القصر الداخلي
-صندوق('القاعة الرئيسية',[0,2.4,-5],[13,4.8,8],0xcbb18a);
-صندوق('سطح القاعة',[0,5,-5],[14,.5,9],0x8b6446);
-صندوق('الواجهة',[0,2.1,-.85],[12,4.2,.4],0xb88e5e);
-
-// أعمدة الواجهة
-for(let x=-5;x<=5;x+=2.5){
- اسطوانة('عمود',[x,1.8,-.5],.3,.38,3.6,0xe2c79a,12);
- اسطوانة('تاج عمود',[x,3.7,-.5],.48,.48,.25,0x8f633f,12);
-}
-
-// قباب زخرفية
-for(const x of [-4,0,4]){
- اسطوانة('قاعدة قبة',[x,5.5,-5],1.1,1.1,.7,0xd8bc8d,16);
- const قبة=new THREE.Mesh(
-  new THREE.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI/2),
-  خامة(0xb77b42)
- );
- قبة.position.set(x,5.85,-5);
- قبة.scale.set(1.05,1.1,1.05);
- قبة.castShadow=true;
- مشهد.add(قبة);
-}
-
-// باب رئيسي
-صندوق('باب القصر',[-1.5,1.5,11.2],[.15,3,1.5],0x704a2d);
-for(let y=.5;y<2.7;y+=.6){
- صندوق('تفاصيل الباب',[-1.41,y,11.2],[.04,.05,1.4],0xc59b58,false);
-}
-
-// نوافذ القصر
-for(const x of [-3.75,-1.25,1.25,3.75]){
- صندوق('نافذة',[x,2.8,-.58],[.8,1.25,.06],0x493b2e);
- صندوق('ضوء النافذة',[x,2.8,-.53],[.55,1,.03],0xe8c58c,false);
-}
-
-// نخيل مبسط
-const مواقعالنخيل=[[-22,-12],[-24,0],[-22,14],[22,-12],[24,2],[22,14],[-8,-20],[8,-20]];
-function نخلة(x,z){
- اسطوانة('جذع نخلة',[x,1.8,z],.22,.35,3.6,0x79502f,8);
- const تاج=new THREE.Group();
- تاج.position.set(x,3.5,z);
- مشهد.add(تاج);
- for(let i=0;i<8;i++){
-  const زاوية=i*Math.PI/4;
-  const ورقة=new THREE.Mesh(
-   new THREE.ConeGeometry(.23,3.2,5),
-   خامة(0x42633a)
-  );
-  ورقة.position.set(Math.cos(زاوية)*1.1,.1,Math.sin(زاوية)*1.1);
-  ورقة.rotation.z=-Math.PI/3;
-  ورقة.rotation.y=-زاوية;
-  ورقة.castShadow=true;
-  تاج.add(ورقة);
- }
-}
-for(const [x,z] of مواقعالنخيل)نخلة(x,z);
-
-// صخور زخرفية بمواقع ثابتة
-let بذرة=12345;
-const عشوائي=()=>{بذرة=(بذرة*16807)%2147483647;return (بذرة-1)/2147483646;};
-for(let i=0;i<18;i++){
- const x=(عشوائي()-.5)*65;
- const z=(عشوائي()-.5)*65;
- const نصف=.3+عشوائي()*.55;
- if(Math.abs(x)<17&&Math.abs(z)<14)continue;
- if(Math.abs(x)<5&&z>8)continue;
- const حجر=new THREE.Mesh(
-  new THREE.DodecahedronGeometry(نصف,0),
-  خامة(0x998063)
- );
- حجر.position.set(x,.05,z);
- حجر.scale.y=.5;
- حجر.castShadow=true;
- مشهد.add(حجر);
-}
-
-/* ============================================================
-   اللاعب — هيكلان:
-   1) مجسم واقعي GLB (Soldier.glb من أمثلة three.js الرسمية —
-      مجسم رجال شبه حقيقي من Mixamo مع هيكل عظام وحركات
-      Idle/Walk/Run من كابتشر حركة حقيقي)
-   2) بديل برمجي مطوّر: دورة مشي/جري/وقوف طبيعية (~90% واقعية)
-   ============================================================ */
-const لاعب=new THREE.Group();
-مشهد.add(لاعب);
-const جلد=خامة(0xb9815b,.8),قميص=خامة(0x344d65,.9),بنطال=خامة(0x2b2a2e,.9),حذاء=خامة(0x1c1a19,.8),قماش=خامة(0xe0d2b6,.9),سواد=خامة(0x111111,.5);
-function جزء(هندسة,خ,م,أب){const m=new THREE.Mesh(هندسة,خ);m.position.set(...م);m.castShadow=true;أب.add(m);return m;}
-function مفصل(أب,x,y,z){const g=new THREE.Group();g.position.set(x,y,z);أب.add(g);return g;}
-const جسمالرجل=new THREE.Group();
-جسمالرجل.scale.setScalar(.95);
-لاعب.add(جسمالرجل);
-const حوض=مفصل(جسمالرجل,0,.95,0);
-جزء(new THREE.BoxGeometry(.36,.2,.22),بنطال,[0,0,0],حوض);
-const صدر=مفصل(حوض,0,.1,0);
-جزء(new THREE.CapsuleGeometry(.19,.3,4,10),قميص,[0,.3,0],صدر).scale.z=.7;
-const رأسمفصل=مفصل(صدر,0,.62,0);
-جزء(new THREE.CylinderGeometry(.06,.07,.12,8),جلد,[0,.04,0],رأسمفصل);
-جزء(new THREE.SphereGeometry(.115,16,12),جلد,[0,.12,0],رأسمفصل).scale.set(1,1.2,1.05);
-جزء(new THREE.SphereGeometry(.125,16,8,0,Math.PI*2,0,Math.PI/2),قماش,[0,.15,0],رأسمفصل);
-جزء(new THREE.SphereGeometry(.014,6,6),سواد,[-.04,.14,.108],رأسمفصل);
-جزء(new THREE.SphereGeometry(.014,6,6),سواد,[.04,.14,.108],رأسمفصل);
-const أرجل=[],أذرع=[];
-for(const جهة of [-1,1]){
- const ط=جهة>0?0:Math.PI;
- const ورك=مفصل(حوض,جهة*.1,-.05,0);
- جزء(new THREE.CapsuleGeometry(.085,.3,4,8),بنطال,[0,-.2,0],ورك);
- const ركبة=مفصل(ورك,0,-.42,0);
- جزء(new THREE.CapsuleGeometry(.065,.3,4,8),بنطال,[0,-.2,0],ركبة);
- const قدم=مفصل(ركبة,0,-.43,0);
- جزء(new THREE.BoxGeometry(.11,.07,.27),حذاء,[0,0,.06],قدم);
- أرجل.push({ورك,ركبة,قدم,ط});
- const كتف=مفصل(صدر,جهة*.27,.45,0);
- جزء(new THREE.CapsuleGeometry(.055,.2,4,8),قميص,[0,-.17,0],كتف);
- const مرفق=مفصل(كتف,0,-.32,0);
- جزء(new THREE.CapsuleGeometry(.05,.18,4,8),قميص,[0,-.15,0],مرفق);
- جزء(new THREE.SphereGeometry(.055,10,8),جلد,[0,-.31,0],مرفق);
- أذرع.push({كتف,مرفق,جهة,ط});
-}
-
-/* ---------- محرك الحركة البرمجي (مشي طبيعي متقدم) ---------- */
-let طور=0,سرعةمنعمة=0,زمنخامل=0;
-let نظرة=0,هدفالنظرة=0,وقتالنظرة=0;      // نظرة الرأس عند الوقوف
-let خلاط=null;const إجراءات={};
-const قيد=(v,a,b)=>Math.max(a,Math.min(b,v));
-const تنعيم=(a,b,t)=>a+(b-a)*Math.min(1,t);
-
-function حركةالجسم(سرعة,dt){
- سرعةمنعمة=تنعيم(سرعةمنعمة,سرعة,dt*7);
- const س=سرعةمنعمة;
- const ح=قيد((س-.25)/1.1,0,1);       // مزج الوقوف↔المشي
- const ر=قيد((س-2.1)/2.9,0,1);       // مزج المشي↔الجري
- زمنخامل+=dt;
-
- if(خلاط){
-  // المجسم الواقعي: مزج سلس بين حركات ميكسامو الثلاث
-  إجراءات.Idle.setEffectiveWeight(1-ح);
-  إجراءات.Walk.setEffectiveWeight(ح*(1-ر));
-  إجراءات.Run.setEffectiveWeight(ح*ر);
-  إجراءات.Walk.timeScale=قيد(س/1.7,.65,1.6);
-  إجراءات.Run.timeScale=قيد(س/4.6,.75,1.35);
-  خلاط.update(dt);
-  return;
- }
-
- /* ===== الوقوف (Idle): تنفس + انتقال وزن + نظرة عشوائية ===== */
- وقتالنظرة-=dt;
- if(وقتالنظرة<=0){وقتالنظرة=2.5+Math.random()*3.5;هدفالنظرة=(Math.random()-.5)*.9;}
- نظرة=تنعيم(نظرة,هدفالنظرة,dt*2.2);
- const تنفس=Math.sin(زمنخامل*1.9);
-
- /* ===== دورة المشي/الجري =====
-    طول الخطوة يتناسب مع السرعة حتى تلتصق القدم بالأرض (لا تنزلق) */
- const طولخطوة=.62+.85*ر;
- طور+=dt*Math.PI*2*س/(2*طولخطوة)*(ح>.02?1:0);
- const sn=Math.sin(طور),cs=Math.cos(طور);
-
- // الساقان: تأرجح فخذ، انثناء ركبة أثناء التأرجح للأمام، دفع أصابع عند الإقلاع
- const A=(.5+.42*ر)*ح;                 // مدى تأرجح الفخذ
- const K=(.55+.85*ر)*ح;                // انثناء الركبة
- for(const ل of أرجل){
-  const s=Math.sin(طور+ل.ط),c=Math.cos(طور+ل.ط);
-  ل.ورك.rotation.x=-s*A;
-  // الركبة تنثني بقوة عندما تكون الساق تتأرجح للأمام (c>0 بعد المرور)
-  ل.ركبة.rotation.x=K*Math.max(0,c)+.07*ح;
-  // القدم: تبقى مسطحة على الأرض أثناء الوقوف على الساق، وتميل عند الإقلاع
-  ل.قدم.rotation.x=-(ل.ورك.rotation.x+ل.ركبة.rotation.x)*.55-.25*ر*ح*Math.max(0,-s);
-  ل.قدم.rotation.y=s*.06*ح;
- }
-
- // الذراعان: تأرجح عكسي للساق نفسها + ثني مرفق يزداد مع الجري (ضخ)
- const AA=(.38+.5*ر)*ح;
- for(const ذ of أذرع){
-  const s=Math.sin(طور+ذ.ط);           // الطور المعاكس يعطي تناوبًا طبيعيًا
-  ذ.كتف.rotation.x=s*AA;
-  ذ.كتف.rotation.z=ذ.جهة*(.06+.05*ر)*ح;
-  ذ.مرفق.rotation.x=-(.22+.85*ر)*ح- .18*ح*Math.max(0,s)*(1-ر)-.1;
- }
-
- /* ===== الحوض: ارتداد عمودي + دوران وتميل جانبي ===== */
- const ارتداد=.032*ح*(1+1.1*ر);
- حوض.position.y=.95+ارتداد*(1-Math.cos(2*طور))*.5+sn*.012*ح;
- حوض.position.x=cs*.025*ح;                            // انتقال الوزن
- حوض.rotation.y=sn*.1*ح;                              // دوران الحوض
- حوض.rotation.z=cs*.045*ح;                            // تميل جانبي
-
- /* ===== الجذع: دوران معاكس + انحناء للأمام ===== */
- صدر.rotation.y=-sn*.16*ح;
- صدر.rotation.x=(.03+.2*ر)*ح;
- صدر.rotation.z=-cs*.03*ح;
-
- /* ===== الرأس: تثبيت جزئي على اتجاه النظر + مشاركة خفيفة ===== */
- رأسمفصل.rotation.y=-صدر.rotation.y*.55+نظرة*(1-ح);
- رأسمفصل.rotation.x=(-.1*ر*ح)+تنفس*.008*(1-ح);
- رأسمفصل.rotation.z=cs*.02*ح;
-
- /* ===== التنفس وحركات الخمول تنعش الجسم الثابت ===== */
- صدر.scale.y=1+.016*تنفس*(1-ح*.6);
- صدر.scale.x=1+.008*تنفس*(1-ح*.6);
- حوض.rotation.z+=Math.sin(زمنخامل*.5)*.018*(1-ح);     // ميلان وزن خفيف
- حوض.position.x+=Math.sin(زمنخامل*.5)*.012*(1-ح);
- for(const ذ of أذرع){
-  ذ.كتف.rotation.x+=Math.sin(زمنخامل*.5)*.03*(1-ح);
- }
-}
-
-/* ---------- تحميل المجسم الواقعي ---------- */
-(async()=>{
- // قائمة مرشحين: مجسمات واقعية جاهزة على CDN
- const المرشحون=[
-  {url:'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/Soldier.glb',اسم:'جندي واقعي (Mixamo)'},
- ];
- try{
-  const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
-  const محمّل=new GLTFLoader();
-  for(const {url,اسم} of المرشحون){
-   try{
-    const gltf=await محمّل.loadAsync(url);
-    // توحيد الحجم: ارتفاع الرجل ≈ 1.78 متر مهما كان مقياس الملف
-    const صندوق=new THREE.Box3().setFromObject(gltf.scene);
-    const ارتفاع=صندوق.max.y-صندوق.min.y;
-    if(ارتفاع>0.01)gltf.scene.scale.setScalar(1.78/ارتفاع);
-    // توسيط الأصل عند القدمين
-    const ص2=new THREE.Box3().setFromObject(gltf.scene);
-    gltf.scene.position.y-=ص2.min.y;
-    gltf.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;}});
-    const م=new THREE.AnimationMixer(gltf.scene);
-    const مؤقت={};
-    for(const clip of gltf.animations){
-     if(['Idle','Walk','Run'].includes(clip.name)){
-      const a=م.clipAction(clip);
-      a.play();
-      a.setEffectiveWeight(clip.name==='Idle'?1:0);
-      مؤقت[clip.name]=a;
-     }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>راية الحق</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #171b20;
+      color: #f3dfb0;
+      font-family: Arial, sans-serif;
     }
-    if(!(مؤقت.Idle&&مؤقت.Walk&&مؤقت.Run))throw new Error('حركات ناقصة');
-    لاعب.add(gltf.scene);
-    جسمالرجل.visible=false;
-    Object.assign(إجراءات,مؤقت);
-    خلاط=م;
-    حالةالنموذج.textContent='الشخصية: '+اسم+' ✔';
-    رسالة.textContent='تم تحميل الشخصية الواقعية';
-    return;
-   }catch(e){console.warn('فشل تحميل',url,e);}
-  }
-  throw new Error('كل المرشحين فشلوا');
- }catch(e){
-  حالةالنموذج.textContent='الشخصية: نموذج برمجي (احتياطي)';
-  console.warn('المجسم الواقعي غير متاح — يعمل النموذج البرمجي المطوّر',e);
- }
-})();
+    #hud {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 2;
+      padding: 14px;
+      border: 1px solid #b99a59;
+      border-radius: 12px;
+      background: #171b20dd;
+    }
+    #hud button {
+      margin-top: 10px;
+      padding: 9px 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <strong>راية الحق — الفصل الأول</strong>
+    <p>العملات: <span id="coins">100</span></p>
+    <p>الألماس: <span id="gems">0</span></p>
+    <button id="save">حفظ التقدم</button>
+    <p id="status">استكشف عالمك الأول.</p>
+  </div>
 
-لاعب.position.set(0,0,20);
+  <script type="module">
+    import * as THREE from
+      'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 
-// التصادم
-function تصادم(x,z){
- if(Math.abs(x)>65||Math.abs(z)>65)return true;
- if(Math.abs(z-12)<.8&&Math.abs(x)<15.8&&Math.abs(x)>1.1)return true;
- if(Math.abs(z+12)<.8&&Math.abs(x)<15.8)return true;
- if(Math.abs(Math.abs(x)-15)<.8&&Math.abs(z)<12.8)return true;
- if(Math.abs(x)<7.3&&z>-9.5&&z<-.3)return true;
- for(const x2 of [-13,13]){
-  for(const z2 of [-10,10]){
-   if(Math.hypot(x-x2,z-z2)<3.4)return true;
-  }
- }
- for(const [px,pz] of مواقعالنخيل){
-  if(Math.hypot(x-px,z-pz)<.7)return true;
- }
- return false;
-}
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#a8c6d0');
+    scene.fog = new THREE.Fog('#a8c6d0', 35, 100);
 
-/* ============================================================
-   التحكم — جويستك عائم يسارًا (مثل فري فاير/ببجي) + كاميرا يمينًا
-   ============================================================ */
-const ضغط={forward:false,back:false,left:false,right:false};
-const مفاتيح={
- KeyW:'forward',ArrowUp:'forward',
- KeyS:'back',ArrowDown:'back',
- KeyA:'left',ArrowLeft:'left',
- KeyD:'right',ArrowRight:'right'
-};
-const صفّرالتحكم=()=>{for(const k in ضغط)ضغط[k]=false;};
-addEventListener('keydown',e=>{
- if(مفاتيح[e.code]){ضغط[مفاتيح[e.code]]=true;e.preventDefault();}
-});
-addEventListener('keyup',e=>{
- if(مفاتيح[e.code])ضغط[مفاتيح[e.code]]=false;
-});
-addEventListener('blur',صفّرالتحكم);
-document.addEventListener('contextmenu',e=>e.preventDefault());
+    const camera = new THREE.PerspectiveCamera(
+      65, innerWidth / innerHeight, 0.1, 150
+    );
 
-let دوران=0,ميل=.5;
-const حساسيةكاميرا=1.0;   // عدّلها لزيادة/تخفيض سرعة الكاميرا
-const جويستك={id:null,x:0,y:0,cx:0,cy:0};
-const نظر={id:null,x:0,y:0};
-const قاعدة=document.getElementById('قاعدة'),مقبض=document.getElementById('مقبض');
-const يسار=document.getElementById('منطقةيسار'),يمين=document.getElementById('منطقةيمين');
-const نصفقطر=48;
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
 
-function حركالجويستك(e){
- const dx=e.clientX-جويستك.cx,dy=e.clientY-جويستك.cy;
- const d=Math.hypot(dx,dy)||1;
- const k=Math.min(1,d/نصفقطر);
- جويستك.x=dx/d*k;
- جويستك.y=-(dy/d)*k;
- مقبض.style.transform='translate('+(dx/d*Math.min(d,نصفقطر))+'px,'+(dy/d*Math.min(d,نصفقطر))+'px)';
-}
-function أنهالجويستك(e){
- if(e.pointerId!==جويستك.id)return;
- جويستك.id=null;جويستك.x=0;جويستك.y=0;
- مقبض.style.transform='';
- قاعدة.classList.remove('نشط');
- قاعدة.style.left=قاعدة.style.top=قاعدة.style.bottom='';
-}
-يسار.addEventListener('pointerdown',e=>{
- if(جويستك.id!==null)return;
- e.preventDefault();
- جويستك.id=e.pointerId;جويستك.cx=e.clientX;جويستك.cy=e.clientY;
- قاعدة.style.left=(e.clientX-60)+'px';
- قاعدة.style.top=(e.clientY-60)+'px';
- قاعدة.style.bottom='auto';
- قاعدة.classList.add('نشط');
- try{يسار.setPointerCapture(e.pointerId);}catch(_){}
- حركالجويستك(e);
-});
-يسار.addEventListener('pointermove',e=>{if(e.pointerId===جويستك.id)حركالجويستك(e);});
-يسار.addEventListener('pointerup',أنهالجويستك);
-يسار.addEventListener('pointercancel',أنهالجويستك);
+    scene.add(new THREE.HemisphereLight('#ffffff', '#72563a', 2));
 
-يمين.addEventListener('pointerdown',e=>{
- if(نظر.id!==null)return;
- e.preventDefault();
- نظر.id=e.pointerId;نظر.x=e.clientX;نظر.y=e.clientY;
- try{يمين.setPointerCapture(e.pointerId);}catch(_){}
-});
-يمين.addEventListener('pointermove',e=>{
- if(e.pointerId!==نظر.id)return;
- دوران-=(e.clientX-نظر.x)*.006*حساسيةكاميرا;
- ميل=قيد(ميل+(e.clientY-نظر.y)*.004*حساسيةكاميرا,.12,1.15);
- نظر.x=e.clientX;نظر.y=e.clientY;
-});
-const أنهالنظر=e=>{if(e.pointerId===نظر.id)نظر.id=null;};
-يمين.addEventListener('pointerup',أنهالنظر);
-يمين.addEventListener('pointercancel',أنهالنظر);
+    const sun = new THREE.DirectionalLight('#ffe1a0', 2.5);
+    sun.position.set(-12, 20, 10);
+    sun.castShadow = true;
+    scene.add(sun);
 
-// الحفظ والمؤشرات
-let ماء=100,طعام=100,معنويات=100;
-const رقم=(v,d)=>Number.isFinite(v)?Math.max(0,Math.min(100,v)):d;
-try{
- const محفوظ=JSON.parse(localStorage.getItem('palaceTestSave')||'null');
- if(محفوظ){
-  const x=Number.isFinite(محفوظ.x)?محفوظ.x:0;
-  const z=Number.isFinite(محفوظ.z)?محفوظ.z:20;
-  if(!تصادم(x,z))لاعب.position.set(x,0,z);
-  ماء=رقم(محفوظ.m,100);
-  طعام=رقم(محفوظ.f,100);
-  معنويات=رقم(محفوظ.morale,100);
- }
-}catch(e){}
+    function block(x, y, z, w, h, d, color) {
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.9 })
+      );
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+      return mesh;
+    }
 
-function احفظ(){
- try{
-  localStorage.setItem('palaceTestSave',JSON.stringify({
-   x:لاعب.position.x,z:لاعب.position.z,
-   m:ماء,f:طعام,morale:معنويات
-  }));
- }catch(e){}
-}
-addEventListener('pagehide',احفظ);
-document.addEventListener('visibilitychange',()=>{if(document.hidden)احفظ();});
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshStandardMaterial({ color: '#c5aa78' })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
 
-function حد(n){return Math.max(0,Math.min(100,n))}
-function حدثالمؤشرات(){
- document.getElementById('ماء').style.width=ماء+'%';
- document.getElementById('طعام').style.width=طعام+'%';
- document.getElementById('معنويات').style.width=معنويات+'%';
-}
-حدثالمؤشرات();
+    // أسوار الحصن
+    block(0, 2, -15, 32, 4, 1.2, '#bda47b');
+    block(-16, 2, 0, 1.2, 4, 31, '#bda47b');
+    block(16, 2, 0, 1.2, 4, 31, '#bda47b');
+    block(-7, 2, 15, 18, 4, 1.2, '#bda47b');
+    block(12, 2, 15, 8, 4, 1.2, '#bda47b');
 
-document.getElementById('تفاعل').addEventListener('click',()=>{
- const px=لاعب.position.x,pz=لاعب.position.z;
- if(Math.abs(px)<4&&pz>9&&pz<16){
-  رسالة.textContent='الباب الرئيسي للقصر';
- }else if(Math.abs(px)<14.2&&Math.abs(pz)<11.2){
-  رسالة.textContent='أنت داخل ساحة القصر. استكشف المكان.';
-  معنويات=حد(معنويات+5);
- }else{
-  رسالة.textContent='تستكشف محيط القصر';
- }
- حدثالمؤشرات();
-});
+    // القصر والسوق
+    block(0, 2, -11, 9, 4, 5, '#d0b68a');
+    block(-7, 0.8, -4, 3, 1.6, 2, '#8e6744');
+    block(0, 0.8, -4, 3, 1.6, 2, '#8e6744');
+    block(7, 0.8, -4, 3, 1.6, 2, '#8e6744');
 
-const ساعة=new THREE.Clock();
-let وقتحفظ=0,وقتمؤشرات=0;
+    // مدخل السرداب
+    block(0, 1.6, 19, 5, 3.2, 0.8, '#46362b');
 
-function إطار(){
- requestAnimationFrame(إطار);
- const dt=Math.min(ساعة.getDelta(),.05);
+    const portal = new THREE.Mesh(
+      new THREE.TorusGeometry(1.5, 0.18, 12, 32),
+      new THREE.MeshStandardMaterial({
+        color: '#d5ad55',
+        emissive: '#6927a0',
+        emissiveIntensity: 1.5
+      })
+    );
+    portal.position.set(0, 2, 20);
+    scene.add(portal);
 
- // إدخال: الجويستك أو لوحة المفاتيح
- let ix=جويستك.x,iy=جويستك.y;
- const kx=(ضغط.right?1:0)-(ضغط.left?1:0),ky=(ضغط.forward?1:0)-(ضغط.back?1:0);
- if(kx||ky){const l=Math.hypot(kx,ky);ix=kx/l;iy=ky/l;}
- let مقدار=Math.min(1,Math.hypot(ix,iy));
- if(مقدار<.12)مقدار=0;
+    // شخصية تجريبية مؤقتة
+    const hero = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.45, 1, 4, 8),
+      new THREE.MeshStandardMaterial({ color: '#293b43' })
+    );
+    hero.position.set(0, 1, 8);
+    hero.castShadow = true;
+    scene.add(hero);
 
- let سرعةهدف=0;
- if(مقدار>0){
-  const fx=-Math.sin(دوران),fz=-Math.cos(دوران),rx=Math.cos(دوران),rz=-Math.sin(دوران);
-  let mx=fx*iy+rx*ix,mz=fz*iy+rz*ix;
-  const l=Math.hypot(mx,mz)||1;mx/=l;mz/=l;
-  // دفع خفيف = مشي هادئ، دفع للآخر = جري (مثل فري فاير/ببجي)
-  سرعةهدف=5.5*مقدار;
-  const nx=لاعب.position.x+mx*سرعةهدف*dt;
-  const nz=لاعب.position.z+mz*سرعةهدف*dt;
-  if(!تصادم(nx,لاعب.position.z))لاعب.position.x=nx;
-  if(!تصادم(لاعب.position.x,nz))لاعب.position.z=nz;
-  let فرق=Math.atan2(mx,mz)-لاعب.rotation.y;
-  فرق=Math.atan2(Math.sin(فرق),Math.cos(فرق));
-  لاعب.rotation.y+=فرق*Math.min(1,dt*12);
-  ماء=حد(ماء-dt*.16*مقدار);
-  طعام=حد(طعام-dt*.07*مقدار);
- }
- حركةالجسم(سرعةهدف,dt);
+    let coins = 100;
+    let gems = 0;
+    const keys = new Set();
 
- // كاميرا مدارية حول اللاعب
- const مسافة=12,cp=Math.cos(ميل),sp=Math.sin(ميل);
- كاميرا.position.set(
-  لاعب.position.x+Math.sin(دوران)*cp*مسافة,
-  لاعب.position.y+1.4+sp*مسافة,
-  لاعب.position.z+Math.cos(دوران)*cp*مسافة
- );
- كاميرا.lookAt(لاعب.position.x,1.4,لاعب.position.z);
+    try {
+      const saved = JSON.parse(localStorage.getItem('rayat-v1'));
+      if (saved && saved.version === 1) {
+        hero.position.x = saved.x ?? 0;
+        hero.position.z = saved.z ?? 8;
+        coins = saved.coins ?? 100;
+        gems = saved.gems ?? 0;
+      }
+    } catch {}
 
- شمس.position.set(لاعب.position.x-25,35,لاعب.position.z+20);
- شمس.target.position.set(لاعب.position.x,0,لاعب.position.z);
+    function updateHUD() {
+      document.querySelector('#coins').textContent = coins;
+      document.querySelector('#gems').textContent = gems;
+    }
+    updateHUD();
 
- وقتحفظ+=dt;
- if(وقتحفظ>3){وقتحفظ=0;احفظ();}
- وقتمؤشرات+=dt;
- if(وقتمؤشرات>.25){وقتمؤشرات=0;حدثالمؤشرات();}
- عارض.render(مشهد,كاميرا);
-}
-إطار();
+    addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
+    addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 
-addEventListener('resize',()=>{
- كاميرا.aspect=innerWidth/innerHeight;
- كاميرا.updateProjectionMatrix();
- عارض.setSize(innerWidth,innerHeight);
- عارض.setPixelRatio(Math.min(devicePixelRatio,1.7));
-});
-</script>
+    document.querySelector('#save').onclick = () => {
+      try {
+        localStorage.setItem('rayat-v1', JSON.stringify({
+          version: 1,
+          x: hero.position.x,
+          z: hero.position.z,
+          coins,
+          gems
+        }));
+        document.querySelector('#status').textContent =
+          'تم حفظ التقدم على هذا الجهاز.';
+      } catch {
+        document.querySelector('#status').textContent =
+          'تعذّر الحفظ في هذا المتصفح.';
+      }
+    };
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const speed = 0.12;
+      if (keys.has('w') || keys.has('arrowup')) hero.position.z -= speed;
+      if (keys.has('s') || keys.has('arrowdown')) hero.position.z += speed;
+      if (keys.has('a') || keys.has('arrowleft')) hero.position.x -= speed;
+      if (keys.has('d') || keys.has('arrowright')) hero.position.x += speed;
+
+      hero.position.x = THREE.MathUtils.clamp(hero.position.x, -14, 14);
+      hero.position.z = THREE.MathUtils.clamp(hero.position.z, -13, 24);
+
+      camera.position.lerp(
+        new THREE.Vector3(hero.position.x, 6, hero.position.z + 8),
+        0.08
+      );
+      camera.lookAt(hero.position.x, hero.position.y, hero.position.z);
+
+      portal.rotation.z = Math.sin(performance.now() * 0.001) * 0.08;
+      renderer.render(scene, camera);
+    }
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    animate();
+  </script>
 </body>
 </html>
- هذا النص راجعه واشوف اموره طيبه ولا لا من كتابه شات جي بي تي وكلاود وجيمين قصدي كيمي من جيمين الان سيحلله ويشوف اذا في اخطاء راح يصلحه
+
+
+
+ 
