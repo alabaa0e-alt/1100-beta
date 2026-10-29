@@ -1,198 +1,390 @@
 
+محادثة مع Gemini
+
+
 <!doctype html>
+
 <html lang="ar" dir="rtl">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>راية الحق</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #171b20;
-      color: #f3dfb0;
-      font-family: Arial, sans-serif;
-    }
-    #hud {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 2;
-      padding: 14px;
-      border: 1px solid #b99a59;
-      border-radius: 12px;
-      background: #171b20dd;
-    }
-    #hud button {
-      margin-top: 10px;
-      padding: 9px 14px;
-      cursor: pointer;
-    }
-  </style>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>راية الحق</title>
+
+<style>
+
+body {
+
+margin: 0;
+
+overflow: hidden;
+
+background: #171b20;
+
+color: #f3dfb0;
+
+font-family: Arial, sans-serif;
+
+}
+
+#hud {
+
+position: fixed;
+
+top: 16px;
+
+right: 16px;
+
+z-index: 2;
+
+padding: 14px;
+
+border: 1px solid #b99a59;
+
+border-radius: 12px;
+
+background: #171b20dd;
+
+}
+
+#hud button {
+
+margin-top: 10px;
+
+padding: 9px 14px;
+
+cursor: pointer;
+
+}
+
+</style>
+
 </head>
+
 <body>
-  <div id="hud">
-    <strong>راية الحق — الفصل الأول</strong>
-    <p>العملات: <span id="coins">100</span></p>
-    <p>الألماس: <span id="gems">0</span></p>
-    <button id="save">حفظ التقدم</button>
-    <p id="status">استكشف عالمك الأول.</p>
-  </div>
 
-  <script type="module">
-    import * as THREE from
-      'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+<div id="hud">
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#a8c6d0');
-    scene.fog = new THREE.Fog('#a8c6d0', 35, 100);
+<strong>راية الحق — الفصل الأول</strong>
 
-    const camera = new THREE.PerspectiveCamera(
-      65, innerWidth / innerHeight, 0.1, 150
-    );
+<p>العملات: <span id="coins">100</span></p>
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-    renderer.shadowMap.enabled = true;
-    document.body.appendChild(renderer.domElement);
+<p>الألماس: <span id="gems">0</span></p>
 
-    scene.add(new THREE.HemisphereLight('#ffffff', '#72563a', 2));
+<button id="save">حفظ التقدم</button>
 
-    const sun = new THREE.DirectionalLight('#ffe1a0', 2.5);
-    sun.position.set(-12, 20, 10);
-    sun.castShadow = true;
-    scene.add(sun);
+<p id="status">استكشف عالمك الأول.</p>
 
-    function block(x, y, z, w, h, d, color) {
-      const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, d),
-        new THREE.MeshStandardMaterial({ color, roughness: 0.9 })
-      );
-      mesh.position.set(x, y, z);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      scene.add(mesh);
-      return mesh;
-    }
+</div>
 
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(100, 100),
-      new THREE.MeshStandardMaterial({ color: '#c5aa78' })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
 
-    // أسوار الحصن
-    block(0, 2, -15, 32, 4, 1.2, '#bda47b');
-    block(-16, 2, 0, 1.2, 4, 31, '#bda47b');
-    block(16, 2, 0, 1.2, 4, 31, '#bda47b');
-    block(-7, 2, 15, 18, 4, 1.2, '#bda47b');
-    block(12, 2, 15, 8, 4, 1.2, '#bda47b');
 
-    // القصر والسوق
-    block(0, 2, -11, 9, 4, 5, '#d0b68a');
-    block(-7, 0.8, -4, 3, 1.6, 2, '#8e6744');
-    block(0, 0.8, -4, 3, 1.6, 2, '#8e6744');
-    block(7, 0.8, -4, 3, 1.6, 2, '#8e6744');
+<script type="module">
 
-    // مدخل السرداب
-    block(0, 1.6, 19, 5, 3.2, 0.8, '#46362b');
+import * as THREE from
 
-    const portal = new THREE.Mesh(
-      new THREE.TorusGeometry(1.5, 0.18, 12, 32),
-      new THREE.MeshStandardMaterial({
-        color: '#d5ad55',
-        emissive: '#6927a0',
-        emissiveIntensity: 1.5
-      })
-    );
-    portal.position.set(0, 2, 20);
-    scene.add(portal);
+'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 
-    // شخصية تجريبية مؤقتة
-    const hero = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.45, 1, 4, 8),
-      new THREE.MeshStandardMaterial({ color: '#293b43' })
-    );
-    hero.position.set(0, 1, 8);
-    hero.castShadow = true;
-    scene.add(hero);
 
-    let coins = 100;
-    let gems = 0;
-    const keys = new Set();
 
-    try {
-      const saved = JSON.parse(localStorage.getItem('rayat-v1'));
-      if (saved && saved.version === 1) {
-        hero.position.x = saved.x ?? 0;
-        hero.position.z = saved.z ?? 8;
-        coins = saved.coins ?? 100;
-        gems = saved.gems ?? 0;
-      }
-    } catch {}
+const scene = new THREE.Scene();
 
-    function updateHUD() {
-      document.querySelector('#coins').textContent = coins;
-      document.querySelector('#gems').textContent = gems;
-    }
-    updateHUD();
+scene.background = new THREE.Color('#a8c6d0');
 
-    addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
-    addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+scene.fog = new THREE.Fog('#a8c6d0', 35, 100);
 
-    document.querySelector('#save').onclick = () => {
-      try {
-        localStorage.setItem('rayat-v1', JSON.stringify({
-          version: 1,
-          x: hero.position.x,
-          z: hero.position.z,
-          coins,
-          gems
-        }));
-        document.querySelector('#status').textContent =
-          'تم حفظ التقدم على هذا الجهاز.';
-      } catch {
-        document.querySelector('#status').textContent =
-          'تعذّر الحفظ في هذا المتصفح.';
-      }
-    };
 
-    function animate() {
-      requestAnimationFrame(animate);
 
-      const speed = 0.12;
-      if (keys.has('w') || keys.has('arrowup')) hero.position.z -= speed;
-      if (keys.has('s') || keys.has('arrowdown')) hero.position.z += speed;
-      if (keys.has('a') || keys.has('arrowleft')) hero.position.x -= speed;
-      if (keys.has('d') || keys.has('arrowright')) hero.position.x += speed;
+const camera = new THREE.PerspectiveCamera(
 
-      hero.position.x = THREE.MathUtils.clamp(hero.position.x, -14, 14);
-      hero.position.z = THREE.MathUtils.clamp(hero.position.z, -13, 24);
+65, innerWidth / innerHeight, 0.1, 150
 
-      camera.position.lerp(
-        new THREE.Vector3(hero.position.x, 6, hero.position.z + 8),
-        0.08
-      );
-      camera.lookAt(hero.position.x, hero.position.y, hero.position.z);
+);
 
-      portal.rotation.z = Math.sin(performance.now() * 0.001) * 0.08;
-      renderer.render(scene, camera);
-    }
 
-    addEventListener('resize', () => {
-      camera.aspect = innerWidth / innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
-    });
 
-    animate();
-  </script>
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+renderer.setSize(innerWidth, innerHeight);
+
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+
+renderer.shadowMap.enabled = true;
+
+document.body.appendChild(renderer.domElement);
+
+
+
+scene.add(new THREE.HemisphereLight('#ffffff', '#72563a', 2));
+
+
+
+const sun = new THREE.DirectionalLight('#ffe1a0', 2.5);
+
+sun.position.set(-12, 20, 10);
+
+sun.castShadow = true;
+
+scene.add(sun);
+
+
+
+function block(x, y, z, w, h, d, color) {
+
+const mesh = new THREE.Mesh(
+
+new THREE.BoxGeometry(w, h, d),
+
+new THREE.MeshStandardMaterial({ color, roughness: 0.9 })
+
+);
+
+mesh.position.set(x, y, z);
+
+mesh.castShadow = true;
+
+mesh.receiveShadow = true;
+
+scene.add(mesh);
+
+return mesh;
+
+}
+
+
+
+const ground = new THREE.Mesh(
+
+new THREE.PlaneGeometry(100, 100),
+
+new THREE.MeshStandardMaterial({ color: '#c5aa78' })
+
+);
+
+ground.rotation.x = -Math.PI / 2;
+
+ground.receiveShadow = true;
+
+scene.add(ground);
+
+
+
+// أسوار الحصن
+
+block(0, 2, -15, 32, 4, 1.2, '#bda47b');
+
+block(-16, 2, 0, 1.2, 4, 31, '#bda47b');
+
+block(16, 2, 0, 1.2, 4, 31, '#bda47b');
+
+block(-7, 2, 15, 18, 4, 1.2, '#bda47b');
+
+block(12, 2, 15, 8, 4, 1.2, '#bda47b');
+
+
+
+// القصر والسوق
+
+block(0, 2, -11, 9, 4, 5, '#d0b68a');
+
+block(-7, 0.8, -4, 3, 1.6, 2, '#8e6744');
+
+block(0, 0.8, -4, 3, 1.6, 2, '#8e6744');
+
+block(7, 0.8, -4, 3, 1.6, 2, '#8e6744');
+
+
+
+// مدخل السرداب
+
+block(0, 1.6, 19, 5, 3.2, 0.8, '#46362b');
+
+
+
+const portal = new THREE.Mesh(
+
+new THREE.TorusGeometry(1.5, 0.18, 12, 32),
+
+new THREE.MeshStandardMaterial({
+
+color: '#d5ad55',
+
+emissive: '#6927a0',
+
+emissiveIntensity: 1.5
+
+})
+
+);
+
+portal.position.set(0, 2, 20);
+
+scene.add(portal);
+
+
+
+// شخصية تجريبية مؤقتة
+
+const hero = new THREE.Mesh(
+
+new THREE.CapsuleGeometry(0.45, 1, 4, 8),
+
+new THREE.MeshStandardMaterial({ color: '#293b43' })
+
+);
+
+hero.position.set(0, 1, 8);
+
+hero.castShadow = true;
+
+scene.add(hero);
+
+
+
+let coins = 100;
+
+let gems = 0;
+
+const keys = new Set();
+
+
+
+try {
+
+const saved = JSON.parse(localStorage.getItem('rayat-v1'));
+
+if (saved && saved.version === 1) {
+
+hero.position.x = saved.x ?? 0;
+
+hero.position.z = saved.z ?? 8;
+
+coins = saved.coins ?? 100;
+
+gems = saved.gems ?? 0;
+
+}
+
+} catch {}
+
+
+
+function updateHUD() {
+
+document.querySelector('#coins').textContent = coins;
+
+document.querySelector('#gems').textContent = gems;
+
+}
+
+updateHUD();
+
+
+
+addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
+
+addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+
+
+
+document.querySelector('#save').onclick = () => {
+
+try {
+
+localStorage.setItem('rayat-v1', JSON.stringify({
+
+version: 1,
+
+x: hero.position.x,
+
+z: hero.position.z,
+
+coins,
+
+gems
+
+}));
+
+document.querySelector('#status').textContent =
+
+'تم حفظ التقدم على هذا الجهاز.';
+
+} catch {
+
+document.querySelector('#status').textContent =
+
+'تعذّر الحفظ في هذا المتصفح.';
+
+}
+
+};
+
+
+
+function animate() {
+
+requestAnimationFrame(animate);
+
+
+
+const speed = 0.12;
+
+if (keys.has('w') || keys.has('arrowup')) hero.position.z -= speed;
+
+if (keys.has('s') || keys.has('arrowdown')) hero.position.z += speed;
+
+if (keys.has('a') || keys.has('arrowleft')) hero.position.x -= speed;
+
+if (keys.has('d') || keys.has('arrowright')) hero.position.x += speed;
+
+
+
+hero.position.x = THREE.MathUtils.clamp(hero.position.x, -14, 14);
+
+hero.position.z = THREE.MathUtils.clamp(hero.position.z, -13, 24);
+
+
+
+camera.position.lerp(
+
+new THREE.Vector3(hero.position.x, 6, hero.position.z + 8),
+
+0.08
+
+);
+
+camera.lookAt(hero.position.x, hero.position.y, hero.position.z);
+
+
+
+portal.rotation.z = Math.sin(performance.now() * 0.001) * 0.08;
+
+renderer.render(scene, camera);
+
+}
+
+
+
+addEventListener('resize', () => {
+
+camera.aspect = innerWidth / innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(innerWidth, innerHeight);
+
+});
+
+
+
+animate();
+
+</script>
+
 </body>
+
 </html>
 
-
-
- 
